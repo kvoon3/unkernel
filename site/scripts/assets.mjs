@@ -43,11 +43,14 @@ await mkdir(join(stage, 'x18n.nvim'), { recursive: true });
 await mkdir(join(stage, 'config/nvim'), { recursive: true });
 await cp(join(pluginRoot, 'lua'), join(stage, 'x18n.nvim/lua'), { recursive: true });
 await cp(join(pluginRoot, 'plugin'), join(stage, 'x18n.nvim/plugin'), { recursive: true });
-await cp(join(pluginRoot, 'playground/vue-vite'), join(stage, 'project'), {
+await cp(join(pluginRoot, 'playground/vue-vite'), join(stage, 'playground'), {
   recursive: true,
-  filter: (source) => !/(^|\/)(node_modules|\.git|\.cache)(\/|$)/.test(source),
+  filter: (source) =>
+    !/(^|\/)(node_modules|\.git|\.cache)(\/|$)/.test(source) &&
+    !/(^|\/)\._/.test(source) &&
+    !/(^|\/)\.DS_Store$/.test(source),
 });
-await cp(join(pluginRoot, 'demo/unkernel/guest/init.lua'), join(stage, 'config/nvim/init.lua'));
+await cp(join(siteRoot, 'guest/init.lua'), join(stage, 'config/nvim/init.lua'));
 
 const runSh = `#!/bin/sh
 set -e
@@ -63,11 +66,13 @@ mkdir -p /opt/x18n
 tar -xzf x18n-lsp.tar.gz -C /opt/x18n
 ln -sf /opt/x18n/node_modules/@x18n/lsp/bin.mjs /usr/local/bin/x18n-lsp
 chmod +x /opt/x18n/node_modules/@x18n/lsp/bin.mjs
-XDG_CONFIG_HOME="$PWD/config" nvim project/src/App.vue
+XDG_CONFIG_HOME="$PWD/config" nvim
 `;
 await writeFile(join(stage, 'run.sh'), runSh, { mode: 0o755 });
 
-await run('tar', ['-czf', join(publicDir, 'site.bin'), '-C', stage, '.']);
+await run('tar', ['-czf', join(publicDir, 'site.bin'), '-C', stage, '.'], {
+  env: { ...process.env, COPYFILE_DISABLE: '1' },
+});
 const site = {
   url: '/site.bin',
   path: 'demos/x18n/site.tar.gz',
