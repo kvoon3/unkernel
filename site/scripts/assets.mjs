@@ -43,7 +43,7 @@ await mkdir(join(stage, 'x18n.nvim'), { recursive: true });
 await mkdir(join(stage, 'config/nvim'), { recursive: true });
 await cp(join(pluginRoot, 'lua'), join(stage, 'x18n.nvim/lua'), { recursive: true });
 await cp(join(pluginRoot, 'plugin'), join(stage, 'x18n.nvim/plugin'), { recursive: true });
-await cp(join(pluginRoot, 'playground/vue-vite'), join(stage, 'playground'), {
+await cp(join(pluginRoot, 'playground'), join(stage, 'playground'), {
   recursive: true,
   filter: (source) =>
     !/(^|\/)(node_modules|\.git|\.cache)(\/|$)/.test(source) &&

@@ -4,8 +4,8 @@
 export const SITE = {
   "url": "/site.bin",
   "path": "demos/x18n/site.tar.gz",
-  "sha256": "d35053dc02b2c3e4d50d1baf952a25cb6a1f7f4c9d2ca520473050c6fc8fddf0",
-  "size": 26748
+  "sha256": "03225000454f40ee9ddb77079d39bb2ce7c44208984e5687bc17d86ddbf5a637",
+  "size": 34684
 } as const;
 export const INSTALL = [
   {
