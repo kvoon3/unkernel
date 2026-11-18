@@ -66,6 +66,7 @@ mkdir -p /opt/x18n
 tar -xzf x18n-lsp.tar.gz -C /opt/x18n
 ln -sf /opt/x18n/node_modules/@x18n/lsp/bin.mjs /usr/local/bin/x18n-lsp
 chmod +x /opt/x18n/node_modules/@x18n/lsp/bin.mjs
+echo __X18N_NVIM__
 XDG_CONFIG_HOME="$PWD/config" nvim
 `;
 await writeFile(join(stage, 'run.sh'), runSh, { mode: 0o755 });

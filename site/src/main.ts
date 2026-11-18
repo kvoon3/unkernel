@@ -24,6 +24,16 @@ term.open(terminalEl);
 fit.fit();
 addEventListener('resize', () => fit.fit());
 
+const started = performance.now();
+const timings: Record<string, number> = {};
+const mark = (name: string) => {
+  if (timings[name] !== undefined) return;
+  timings[name] = Math.round(performance.now() - started);
+  console.info(`[timing] ${name} ${timings[name]}ms`);
+};
+mark('start');
+(globalThis as unknown as { __timings: Record<string, number> }).__timings = timings;
+
 async function digest(bytes: Uint8Array): Promise<string> {
   const hash = await crypto.subtle.digest('SHA-256', bytes.buffer as ArrayBuffer);
   return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -63,13 +73,18 @@ async function run(): Promise<void> {
   term.writeln('\x1b[90m[host] booting unkernel…\x1b[0m');
   const vm = await createKernel({ log: (msg) => term.writeln(`\x1b[90m${msg}\x1b[0m`) });
   (globalThis as unknown as { __x18n: { term: Terminal; vm: KernelHandle } }).__x18n = { term, vm };
+  mark('kernel');
   term.writeln('\x1b[90m[host] kernel ready\x1b[0m');
 
   const assets = [SITE, ...INSTALL];
   for (const [index, asset] of assets.entries()) {
     status.textContent = `downloading ${index + 1}/${assets.length}…`;
-    await push(vm, asset.path, await fetchChecked(asset));
+    const bytes = await fetchChecked(asset);
+    mark(`fetch-${index}`);
+    await push(vm, asset.path, bytes);
+    mark(`push-${index}`);
   }
+  mark('assets');
 
   status.textContent = 'unpacking…';
   const unpack = await vm.exec('/bin/sh', [
@@ -77,16 +92,38 @@ async function run(): Promise<void> {
     'mkdir -p ~/demos/x18n && tar -xzf ~/demos/x18n/site.tar.gz -C ~/demos/x18n',
   ]);
   if (unpack.exitCode !== 0) throw new Error(`unpack failed: ${(unpack.stderr || unpack.stdout).trim()}`);
+  mark('unpack');
 
   status.textContent = 'starting nvim…';
   const pty = await vm.spawn('/bin/sh', ['-lc', 'cd ~/demos/x18n && exec ./run.sh'], {
     cols: term.cols,
     rows: term.rows,
   });
+  mark('spawn');
   status.textContent = 'running';
 
+  const decoder = new TextDecoder();
+  let scan = '';
+  const markers: Array<[string, string]> = [
+    ['__X18N_NVIM__', 'nvim'],
+    ['playground/vue-vite/src/App.vue', 'file'],
+    ['x18n LSP attached', 'lsp'],
+    ['Playground', 'translated'],
+  ];
   void pty.output
-    .pipeTo(new WritableStream({ write: (chunk) => term.write(chunk) }))
+    .pipeTo(
+      new WritableStream({
+        write(chunk) {
+          term.write(chunk);
+          if (timings.translated !== undefined) return;
+          scan += decoder.decode(chunk, { stream: true });
+          for (const [needle, name] of markers) {
+            if (timings[name] === undefined && scan.includes(needle)) mark(name);
+          }
+          if (scan.length > 32768) scan = scan.slice(-16384);
+        },
+      }),
+    )
     .catch((error: unknown) => term.writeln(`\r\n\x1b[31m[host] ${String(error)}\x1b[0m`));
   term.onData((data) => {
     void pty.write(data);
