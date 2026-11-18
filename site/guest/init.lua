@@ -24,4 +24,5 @@ require('x18n').setup { lsp = { cmd = { '/usr/local/bin/x18n-lsp', '--stdio' } }
 
 vim.g.netrw_banner = 0
 vim.g.netrw_liststyle = 3
+vim.cmd('edit ' .. vim.fn.fnameescape(vim.fn.expand '~/demos/x18n/playground/vue-vite/src/App.vue'))
 vim.cmd('edit ' .. vim.fn.fnameescape(vim.fn.expand '~/demos/x18n/playground'))
